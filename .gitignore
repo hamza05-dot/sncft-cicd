@@ -6,6 +6,7 @@ backend/.env.*.local
 
 # Docker
 .env
+docker-compose.override.yml
 
 # OS
 .DS_Store
