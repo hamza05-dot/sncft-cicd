@@ -1,0 +1,12 @@
+# Symfony
+backend/vendor/
+backend/var/
+backend/.env.local
+backend/.env.*.local
+
+# Docker
+.env
+
+# OS
+.DS_Store
+*.log
