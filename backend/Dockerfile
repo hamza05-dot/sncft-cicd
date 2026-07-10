@@ -10,7 +10,7 @@ WORKDIR /var/www/symfony
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+RUN APP_ENV=prod composer install --no-dev --optimize-autoloader --no-scripts
 
 EXPOSE 9000
 CMD ["php-fpm"]

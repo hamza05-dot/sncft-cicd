@@ -3,6 +3,10 @@ version: '3.8'
 services:
   backend:
     build: ./backend
+    environment:
+      APP_ENV: dev
+      APP_SECRET: mysecretkey123
+      DATABASE_URL: "postgresql://sncft_user:sncft_pass@db:5432/sncft_db?serverVersion=16&charset=utf8"
     depends_on:
       - db
 
@@ -13,7 +17,7 @@ services:
       POSTGRES_USER: sncft_user
       POSTGRES_PASSWORD: sncft_pass
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   nginx:
     image: nginx:alpine
