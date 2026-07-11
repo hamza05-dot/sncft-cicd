@@ -1,0 +1,45 @@
+name: CI/CD Pipeline - SNCFT
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t hamza518/sncft-backend:latest ./backend
+          docker build -t hamza518/sncft-backend:${{ github.sha }} ./backend
+
+      - name: Push Docker image
+        run: |
+          docker push hamza518/sncft-backend:latest
+          docker push hamza518/sncft-backend:${{ github.sha }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy with Docker Compose
+        run: |
+          echo "Deployment successful for commit ${{ github.sha }}"
