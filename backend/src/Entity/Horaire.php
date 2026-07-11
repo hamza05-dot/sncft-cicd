@@ -98,12 +98,12 @@ class Horaire
         return $this;
     }
 
-    public function getTarjet(): ?Trajet
+    public function getTrajet(): ?Trajet
     {
         return $this->trajet;
     }
 
-    public function setTarjet(?Trajet $trajet): static
+    public function setTrajet(?Trajet $trajet): static
     {
         $this->trajet = $trajet;
 
