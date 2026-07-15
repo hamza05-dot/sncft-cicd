@@ -31,3 +31,32 @@ export interface Modification {
   type: string;
   horaireId: number;
 }
+
+export interface Personnel {
+  id: number;
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string;
+  role: string;
+}
+
+export interface Maintenance {
+  id: number;
+  description: string;
+  dateDebut: string;
+  dateFin: string | null;
+  statut: string;
+  type: string;
+  train: string;
+  personnel: string | null;
+}
+
+export interface Reservation {
+  id: number;
+  dateReservation: string;
+  statut: string;
+  placesReservees: number;
+  voyageur: string;
+  horaire: number;
+}

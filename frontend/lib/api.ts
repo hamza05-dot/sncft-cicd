@@ -90,3 +90,45 @@ export const deleteStation = async (id: number) => {
   const res = await api.delete(`/stations/${id}`);
   return res.data;
 };
+// Personnel
+export const getPersonnel = async () => {
+  const res = await api.get('/personnel');
+  return res.data;
+};
+
+export const createPersonnel = async (data: object) => {
+  const res = await api.post('/personnel', data);
+  return res.data;
+};
+
+export const deletePersonnel = async (id: number) => {
+  const res = await api.delete(`/personnel/${id}`);
+  return res.data;
+};
+
+// Maintenance
+export const getMaintenances = async () => {
+  const res = await api.get('/maintenances');
+  return res.data;
+};
+
+export const createMaintenance = async (data: object) => {
+  const res = await api.post('/maintenances', data);
+  return res.data;
+};
+
+export const deleteMaintenance = async (id: number) => {
+  const res = await api.delete(`/maintenances/${id}`);
+  return res.data;
+};
+
+// Reservation
+export const getReservations = async () => {
+  const res = await api.get('/reservations');
+  return res.data;
+};
+
+export const createReservation = async (data: object) => {
+  const res = await api.post('/reservations', data);
+  return res.data;
+};
