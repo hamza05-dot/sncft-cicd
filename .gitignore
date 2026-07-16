@@ -1,9 +1,8 @@
 # Symfony
 backend/vendor/
 backend/var/
-backend/.env.local
-backend/.env.*.local
-ackend/.env
+backend/.env.*
+backend/.env
 # Docker
 .env
 docker-compose.override.yml
