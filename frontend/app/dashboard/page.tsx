@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getHoraires, getTrains, getStations, getPersonnel, getMaintenances, getReservations, deleteHoraire, deleteTrain, deleteStation, deletePersonnel, deleteMaintenance } from '@/lib/api';
+import { getHoraires, getTrains, getStations, getPersonnel, getMaintenances, getReservations, deleteHoraire, deleteTrain, deleteStation, deletePersonnel, deleteMaintenance, getTrajetsList } from '@/lib/api';
 import { Horaire, Train, Station, Personnel, Maintenance, Reservation } from '@/types';
 import StatutBadge from '@/components/StatutBadge';
+import Modal from '@/components/Modal';
+import PersonnelForm from '@/components/forms/PersonnelForm';
+import MaintenanceForm from '@/components/forms/MaintenanceForm';
+import HoraireForm from '@/components/forms/HoraireForm';
 
 export default function DashboardPage() {
   const { user, isAdmin, loading } = useAuth();
@@ -16,7 +20,11 @@ export default function DashboardPage() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [trajets, setTrajets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('stats');
+  const [showPersonnelForm, setShowPersonnelForm] = useState(false);
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showHoraireForm, setShowHoraireForm] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) router.push('/login');
@@ -30,6 +38,7 @@ export default function DashboardPage() {
       getPersonnel().then(setPersonnel);
       getMaintenances().then(setMaintenances);
       getReservations().then(setReservations);
+      getTrajetsList().then(setTrajets);
     }
   }, [isAdmin]);
 
@@ -76,13 +85,10 @@ export default function DashboardPage() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+          <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition ${
               activeTab === tab ? 'bg-blue-800 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
+            }`}>
             {tab}
           </button>
         ))}
@@ -121,36 +127,44 @@ export default function DashboardPage() {
 
       {/* Horaires Tab */}
       {activeTab === 'horaires' && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-blue-800 text-white">
-              <tr>
-                <th className="p-3 text-left">Train</th>
-                <th className="p-3 text-left">Trajet</th>
-                <th className="p-3 text-left">Départ</th>
-                <th className="p-3 text-left">Arrivée</th>
-                <th className="p-3 text-left">Statut</th>
-                <th className="p-3 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {horaires.map((h, i) => (
-                <tr key={h.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="p-3">{h.train}</td>
-                  <td className="p-3">{h.trajet}</td>
-                  <td className="p-3">{h.heureDepart}</td>
-                  <td className="p-3">{h.heureArrivee}</td>
-                  <td className="p-3"><StatutBadge statut={h.statut} /></td>
-                  <td className="p-3">
-                    <button onClick={() => deleteHoraire(h.id).then(() => setHoraires(horaires.filter(x => x.id !== h.id)))}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                      Supprimer
-                    </button>
-                  </td>
+        <div>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowHoraireForm(true)}
+              className="bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition">
+              + Ajouter Horaire
+            </button>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-blue-800 text-white">
+                <tr>
+                  <th className="p-3 text-left">Train</th>
+                  <th className="p-3 text-left">Trajet</th>
+                  <th className="p-3 text-left">Départ</th>
+                  <th className="p-3 text-left">Arrivée</th>
+                  <th className="p-3 text-left">Statut</th>
+                  <th className="p-3 text-left">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {horaires.map((h, i) => (
+                  <tr key={h.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="p-3">{h.train}</td>
+                    <td className="p-3">{h.trajet}</td>
+                    <td className="p-3">{h.heureDepart}</td>
+                    <td className="p-3">{h.heureArrivee}</td>
+                    <td className="p-3"><StatutBadge statut={h.statut} /></td>
+                    <td className="p-3">
+                      <button onClick={() => deleteHoraire(h.id).then(() => setHoraires(horaires.filter(x => x.id !== h.id)))}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -193,62 +207,78 @@ export default function DashboardPage() {
 
       {/* Personnel Tab */}
       {activeTab === 'personnel' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {personnel.map(p => (
-            <div key={p.id} className="bg-white rounded-xl shadow p-5">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-lg font-bold text-blue-800">{p.prenom} {p.nom}</h2>
-                  <p className="text-gray-500 text-sm">Role : {p.role}</p>
-                  <p className="text-gray-500 text-sm">{p.email}</p>
-                  {p.telephone && <p className="text-gray-400 text-sm">{p.telephone}</p>}
+        <div>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowPersonnelForm(true)}
+              className="bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition">
+              + Ajouter Personnel
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {personnel.map(p => (
+              <div key={p.id} className="bg-white rounded-xl shadow p-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-bold text-blue-800">{p.prenom} {p.nom}</h2>
+                    <p className="text-gray-500 text-sm">Rôle : {p.role}</p>
+                    <p className="text-gray-500 text-sm">{p.email}</p>
+                    {p.telephone && <p className="text-gray-400 text-sm">{p.telephone}</p>}
+                  </div>
+                  <button onClick={() => deletePersonnel(p.id).then(() => setPersonnel(personnel.filter(x => x.id !== p.id)))}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">✕</button>
                 </div>
-                <button onClick={() => deletePersonnel(p.id).then(() => setPersonnel(personnel.filter(x => x.id !== p.id)))}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">✕</button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {/* Maintenances Tab */}
       {activeTab === 'maintenances' && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-blue-800 text-white">
-              <tr>
-                <th className="p-3 text-left">Train</th>
-                <th className="p-3 text-left">Description</th>
-                <th className="p-3 text-left">Type</th>
-                <th className="p-3 text-left">Début</th>
-                <th className="p-3 text-left">Statut</th>
-                <th className="p-3 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {maintenances.map((m, i) => (
-                <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="p-3">{m.train}</td>
-                  <td className="p-3">{m.description}</td>
-                  <td className="p-3">{m.type}</td>
-                  <td className="p-3">{m.dateDebut}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-sm font-medium ${
-                      m.statut === 'Termine' ? 'bg-green-100 text-green-700' :
-                      m.statut === 'En cours' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>{m.statut}</span>
-                  </td>
-                  <td className="p-3">
-                    <button onClick={() => deleteMaintenance(m.id).then(() => setMaintenances(maintenances.filter(x => x.id !== m.id)))}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                      Supprimer
-                    </button>
-                  </td>
+        <div>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowMaintenanceForm(true)}
+              className="bg-blue-800 text-white px-4 py-2 rounded-lg hover:bg-blue-900 transition">
+              + Ajouter Maintenance
+            </button>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-blue-800 text-white">
+                <tr>
+                  <th className="p-3 text-left">Train</th>
+                  <th className="p-3 text-left">Description</th>
+                  <th className="p-3 text-left">Type</th>
+                  <th className="p-3 text-left">Début</th>
+                  <th className="p-3 text-left">Statut</th>
+                  <th className="p-3 text-left">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {maintenances.map((m, i) => (
+                  <tr key={m.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="p-3">{m.train}</td>
+                    <td className="p-3">{m.description}</td>
+                    <td className="p-3">{m.type}</td>
+                    <td className="p-3">{m.dateDebut}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded-full text-sm font-medium ${
+                        m.statut === 'Termine' ? 'bg-green-100 text-green-700' :
+                        m.statut === 'En cours' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>{m.statut}</span>
+                    </td>
+                    <td className="p-3">
+                      <button onClick={() => deleteMaintenance(m.id).then(() => setMaintenances(maintenances.filter(x => x.id !== m.id)))}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -284,6 +314,38 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Modals */}
+      {showPersonnelForm && (
+        <Modal title="Ajouter Personnel" onClose={() => setShowPersonnelForm(false)}>
+          <PersonnelForm
+            onClose={() => setShowPersonnelForm(false)}
+            onSuccess={() => getPersonnel().then(setPersonnel)}
+          />
+        </Modal>
+      )}
+
+      {showMaintenanceForm && (
+        <Modal title="Ajouter Maintenance" onClose={() => setShowMaintenanceForm(false)}>
+          <MaintenanceForm
+            onClose={() => setShowMaintenanceForm(false)}
+            onSuccess={() => getMaintenances().then(setMaintenances)}
+            trains={trains}
+            personnel={personnel}
+          />
+        </Modal>
+      )}
+
+      {showHoraireForm && (
+        <Modal title="Ajouter Horaire" onClose={() => setShowHoraireForm(false)}>
+          <HoraireForm
+            onClose={() => setShowHoraireForm(false)}
+            onSuccess={() => getHoraires().then(setHoraires)}
+            trains={trains}
+            trajets={trajets}
+          />
+        </Modal>
       )}
     </div>
   );

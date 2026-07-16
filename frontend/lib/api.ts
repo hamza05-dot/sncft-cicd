@@ -132,3 +132,7 @@ export const createReservation = async (data: object) => {
   const res = await api.post('/reservations', data);
   return res.data;
 };
+export const getTrajetsList = async () => {
+  const res = await api.get('/trajets');
+  return res.data;
+};
