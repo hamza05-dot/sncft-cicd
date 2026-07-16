@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Horaire;
+use App\Entity\Notification;
 use App\Repository\HoraireRepository;
 use App\Repository\TrainRepository;
 use App\Repository\TrajetRepository;
+use App\Repository\FavoriRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,16 +21,19 @@ class HoraireController extends AbstractController
     public function index(HoraireRepository $repo): JsonResponse
     {
         $horaires = $repo->findAll();
-        $data = array_map(fn($h) => [
-            'id' => $h->getId(),
-            'heureDepart' => $h->getHeureDepart()->format('H:i'),
-            'heureArrivee' => $h->getHeureArrivee()->format('H:i'),
-            'jours' => $h->getJours(),
-            'statut' => $h->getStatut(),
-            'train' => $h->getTrain()->getNumero(),
-            'trajet' => $h->getTrajet()->getStationDepart()->getNom().' → '.$h->getTrajet()->getStationArrivee()->getNom(),
-        ], $horaires);
-
+        $data = [];
+        foreach ($horaires as $h) {
+            $data[] = [
+                'id' => $h->getId(),
+                'heureDepart' => $h->getHeureDepart()->format('H:i'),
+                'heureArrivee' => $h->getHeureArrivee()->format('H:i'),
+                'jours' => $h->getJours(),
+                'statut' => $h->getStatut(),
+                'retardMinutes' => $h->getRetardMinutes(),
+                'train' => $h->getTrain()->getNumero(),
+                'trajet' => $h->getTrajet()->getStationDepart()->getNom().' -> '.$h->getTrajet()->getStationArrivee()->getNom(),
+            ];
+        }
         return $this->json($data);
     }
 
@@ -41,8 +46,9 @@ class HoraireController extends AbstractController
             'heureArrivee' => $horaire->getHeureArrivee()->format('H:i'),
             'jours' => $horaire->getJours(),
             'statut' => $horaire->getStatut(),
+            'retardMinutes' => $horaire->getRetardMinutes(),
             'train' => $horaire->getTrain()->getNumero(),
-            'trajet' => $horaire->getTrajet()->getStationDepart()->getNom().' → '.$horaire->getTrajet()->getStationArrivee()->getNom(),
+            'trajet' => $horaire->getTrajet()->getStationDepart()->getNom().' -> '.$horaire->getTrajet()->getStationArrivee()->getNom(),
         ]);
     }
 
@@ -55,14 +61,53 @@ class HoraireController extends AbstractController
         $horaire->setHeureDepart(new \DateTime($data['heureDepart']));
         $horaire->setHeureArrivee(new \DateTime($data['heureArrivee']));
         $horaire->setJours($data['jours']);
-        $horaire->setStatut($data['statut'] ?? 'A l\'heure');
+        $horaire->setStatut($data['statut'] ?? "A l'heure");
+        $horaire->setRetardMinutes(null);
         $horaire->setTrain($trainRepo->find($data['trainId']));
         $horaire->setTrajet($trajetRepo->find($data['trajetId']));
 
         $em->persist($horaire);
         $em->flush();
 
-        return $this->json(['message' => 'Horaire créé', 'id' => $horaire->getId()], 201);
+        return $this->json(['message' => 'Horaire cree', 'id' => $horaire->getId()], 201);
+    }
+
+    #[Route('/{id}/statut', methods: ['PUT'])]
+    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $ancienStatut = $horaire->getStatut();
+
+        $horaire->setStatut($data['statut']);
+        $horaire->setRetardMinutes($data['retardMinutes'] ?? null);
+
+        // Créer notifications pour tous les favoris
+        $favoris = $favoriRepo->findBy(['horaire' => $horaire]);
+        foreach ($favoris as $favori) {
+            $notification = new Notification();
+            $notification->setVoyageur($favori->getVoyageur());
+            $notification->setHoraire($horaire);
+            $notification->setDateCreation(new \DateTime());
+            $notification->setLu(false);
+
+            if ($data['statut'] === 'Retard') {
+                $minutes = $data['retardMinutes'] ?? 0;
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est en retard de ".$minutes." minutes.");
+                $notification->setType('RETARD');
+            } elseif ($data['statut'] === 'Annule') {
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est annule.");
+                $notification->setType('ANNULATION');
+            } else {
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est maintenant a l'heure.");
+                $notification->setType('INFO');
+            }
+
+            $em->persist($notification);
+        }
+
+        $em->flush();
+
+        return $this->json(['message' => 'Statut mis a jour', 'notifications_envoyees' => count($favoris)]);
     }
 
     #[Route('/{id}', methods: ['PUT'])]
@@ -77,7 +122,7 @@ class HoraireController extends AbstractController
 
         $em->flush();
 
-        return $this->json(['message' => 'Horaire mis à jour']);
+        return $this->json(['message' => 'Horaire mis a jour']);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
@@ -86,6 +131,6 @@ class HoraireController extends AbstractController
         $em->remove($horaire);
         $em->flush();
 
-        return $this->json(['message' => 'Horaire supprimé']);
+        return $this->json(['message' => 'Horaire supprime']);
     }
 }
