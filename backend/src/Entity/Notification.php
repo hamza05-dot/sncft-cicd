@@ -1,25 +1,29 @@
 <?php
+
 namespace App\Entity;
 
-use App\Repository\ReservationRepository;
+use App\Repository\NotificationRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: ReservationRepository::class)]
-class Reservation
+#[ORM\Entity(repositoryClass: NotificationRepository::class)]
+class Notification
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column]
-    private ?\DateTime $dateReservation = null;
+    #[ORM\Column(length: 255)]
+    private ?string $message = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $statut = null;
+    private ?string $type = null;
 
     #[ORM\Column]
-    private ?int $placesReservees = null;
+    private ?bool $lu = null;
+
+    #[ORM\Column]
+    private ?\DateTime $dateCreation = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -34,36 +38,51 @@ class Reservation
         return $this->id;
     }
 
-    public function getDateReservation(): ?\DateTime
+    public function getMessage(): ?string
     {
-        return $this->dateReservation;
+        return $this->message;
     }
 
-    public function setDateReservation(\DateTime $dateReservation): static
+    public function setMessage(string $message): static
     {
-        $this->dateReservation = $dateReservation;
+        $this->message = $message;
+
         return $this;
     }
 
-    public function getStatut(): ?string
+    public function getType(): ?string
     {
-        return $this->statut;
+        return $this->type;
     }
 
-    public function setStatut(string $statut): static
+    public function setType(string $type): static
     {
-        $this->statut = $statut;
+        $this->type = $type;
+
         return $this;
     }
 
-    public function getPlacesReservees(): ?int
+    public function isLu(): ?bool
     {
-        return $this->placesReservees;
+        return $this->lu;
     }
 
-    public function setPlacesReservees(int $placesReservees): static
+    public function setLu(bool $lu): static
     {
-        $this->placesReservees = $placesReservees;
+        $this->lu = $lu;
+
+        return $this;
+    }
+
+    public function getDateCreation(): ?\DateTime
+    {
+        return $this->dateCreation;
+    }
+
+    public function setDateCreation(\DateTime $dateCreation): static
+    {
+        $this->dateCreation = $dateCreation;
+
         return $this;
     }
 
@@ -75,6 +94,7 @@ class Reservation
     public function setVoyageur(?User $voyageur): static
     {
         $this->voyageur = $voyageur;
+
         return $this;
     }
 
@@ -86,6 +106,7 @@ class Reservation
     public function setHoraire(?Horaire $horaire): static
     {
         $this->horaire = $horaire;
+
         return $this;
     }
 }

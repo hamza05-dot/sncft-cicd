@@ -28,6 +28,9 @@ class Personnel
     #[ORM\Column(length: 50)]
     private ?string $role = null;
 
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    private ?User $compte = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -89,6 +92,18 @@ class Personnel
     public function setRole(string $role): static
     {
         $this->role = $role;
+
+        return $this;
+    }
+
+    public function getCompte(): ?User
+    {
+        return $this->compte;
+    }
+
+    public function setCompte(?User $compte): static
+    {
+        $this->compte = $compte;
 
         return $this;
     }

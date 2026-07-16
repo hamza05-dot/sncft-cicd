@@ -33,6 +33,9 @@ class Horaire
     #[ORM\JoinColumn(nullable: false)]
     private ?Trajet $trajet = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $retardMinutes = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -106,6 +109,18 @@ class Horaire
     public function setTrajet(?Trajet $trajet): static
     {
         $this->trajet = $trajet;
+
+        return $this;
+    }
+
+    public function getRetardMinutes(): ?int
+    {
+        return $this->retardMinutes;
+    }
+
+    public function setRetardMinutes(?int $retardMinutes): static
+    {
+        $this->retardMinutes = $retardMinutes;
 
         return $this;
     }
