@@ -3,7 +3,7 @@ backend/vendor/
 backend/var/
 backend/.env.local
 backend/.env.*.local
-
+ackend/.env
 # Docker
 .env
 docker-compose.override.yml
