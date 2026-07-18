@@ -12,9 +12,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   isAdmin: boolean;
+  isEmploye: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,12 +38,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     const data = await apiLogin(email, password);
     localStorage.setItem('token', data.token);
     setToken(data.token);
     const me = await getMe();
     setUser(me);
+    return me;
   };
 
   const logout = () => {
@@ -52,9 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isAdmin = user?.roles?.includes('ROLE_ADMIN') ?? false;
+  const isEmploye = user?.roles?.includes('ROLE_EMPLOYE') ?? false;
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin, isEmploye }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getHoraires, getTrains, getStations, getPersonnel, getMaintenances, getReservations, deleteHoraire, deleteTrain, deleteStation, deletePersonnel, deleteMaintenance, getTrajetsList } from '@/lib/api';
+import { getHoraires, getTrains, getStations, getPersonnel, getMaintenances, deleteHoraire, deleteTrain, deleteStation, deletePersonnel, deleteMaintenance, getTrajetsList } from '@/lib/api';
 import { Horaire, Train, Station, Personnel, Maintenance, Reservation } from '@/types';
 import StatutBadge from '@/components/StatutBadge';
 import Modal from '@/components/Modal';
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       getStations().then(setStations);
       getPersonnel().then(setPersonnel);
       getMaintenances().then(setMaintenances);
-      getReservations().then(setReservations);
+      
       getTrajetsList().then(setTrajets);
     }
   }, [isAdmin]);
