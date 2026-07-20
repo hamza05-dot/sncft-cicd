@@ -44,10 +44,18 @@ class NotificationController extends AbstractController
     #[Route('/{id}/lire', methods: ['PUT'])]
     public function marquerLue(int $id, NotificationRepository $repo, EntityManagerInterface $em): JsonResponse
     {
+        $user = $this->getUser();
         $notification = $repo->find($id);
+
         if (!$notification) {
             return $this->json(['message' => 'Notification non trouvee'], 404);
         }
+
+        // Fix IDOR - verify ownership
+        if ($notification->getVoyageur() !== $user) {
+            return $this->json(['message' => 'Acces refuse'], 403);
+        }
+
         $notification->setLu(true);
         $em->flush();
         return $this->json(['message' => 'Notification marquee comme lue']);

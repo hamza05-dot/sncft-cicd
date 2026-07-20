@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -9,11 +9,12 @@ const api = axios.create({
   },
 });
 
-// Ajoute le token JWT automatiquement
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -55,6 +56,11 @@ export const getTrajets = async () => {
   return res.data;
 };
 
+export const getTrajetsList = async () => {
+  const res = await api.get('/trajets');
+  return res.data;
+};
+
 // Admin CRUD
 export const createHoraire = async (data: object) => {
   const res = await api.post('/horaires', data);
@@ -63,6 +69,11 @@ export const createHoraire = async (data: object) => {
 
 export const updateHoraire = async (id: number, data: object) => {
   const res = await api.put(`/horaires/${id}`, data);
+  return res.data;
+};
+
+export const updateStatutHoraire = async (id: number, statut: string, retardMinutes?: number) => {
+  const res = await api.put(`/horaires/${id}/statut`, { statut, retardMinutes });
   return res.data;
 };
 
@@ -90,6 +101,17 @@ export const deleteStation = async (id: number) => {
   const res = await api.delete(`/stations/${id}`);
   return res.data;
 };
+
+export const createTrajet = async (data: object) => {
+  const res = await api.post('/trajets', data);
+  return res.data;
+};
+
+export const deleteTrajet = async (id: number) => {
+  const res = await api.delete(`/trajets/${id}`);
+  return res.data;
+};
+
 // Personnel
 export const getPersonnel = async () => {
   const res = await api.get('/personnel');
@@ -122,17 +144,34 @@ export const deleteMaintenance = async (id: number) => {
   return res.data;
 };
 
-// Reservation
-export const getReservations = async () => {
-  const res = await api.get('/reservations');
+// Favoris
+export const getFavoris = async () => {
+  const res = await api.get('/favoris');
   return res.data;
 };
 
-export const createReservation = async (data: object) => {
-  const res = await api.post('/reservations', data);
+export const addFavori = async (horaireId: number) => {
+  const res = await api.post('/favoris', { horaireId });
   return res.data;
 };
-export const getTrajetsList = async () => {
-  const res = await api.get('/trajets');
+
+export const deleteFavori = async (id: number) => {
+  const res = await api.delete(`/favoris/${id}`);
+  return res.data;
+};
+
+// Notifications
+export const getNotifications = async () => {
+  const res = await api.get('/notifications');
+  return res.data;
+};
+
+export const marquerNotificationLue = async (id: number) => {
+  const res = await api.put(`/notifications/${id}/lire`, {});
+  return res.data;
+};
+
+export const marquerToutesLues = async () => {
+  const res = await api.put('/notifications/lire-toutes', {});
   return res.data;
 };

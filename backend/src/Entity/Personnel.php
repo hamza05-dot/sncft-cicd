@@ -23,7 +23,7 @@ class Personnel
     private ?string $email = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    private ?string $tlf = null;
+    private ?string $telephone = null;
 
     #[ORM\Column(length: 50)]
     private ?string $role = null;
@@ -72,14 +72,14 @@ class Personnel
         return $this;
     }
 
-    public function getTlf(): ?string
+    public function getTelephone(): ?string
     {
-        return $this->tlf;
+        return $this->telephone;
     }
 
-    public function setTlf(?string $tlf): static
+    public function setTelephone(?string $telephone): static
     {
-        $this->tlf = $tlf;
+        $this->telephone = $telephone;
 
         return $this;
     }

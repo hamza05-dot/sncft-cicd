@@ -45,6 +45,10 @@ class FavoriController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $horaire = $horaireRepo->find($data['horaireId']);
 
+        if (!$horaire) {
+            return $this->json(['message' => 'Horaire non trouve'], 404);
+        }
+
         $existing = $favoriRepo->findOneBy(['voyageur' => $user, 'horaire' => $horaire]);
         if ($existing) {
             return $this->json(['message' => 'Deja en favori'], 400);
@@ -64,6 +68,11 @@ class FavoriController extends AbstractController
     #[Route('/{id}', methods: ['DELETE'])]
     public function delete(Favori $favori, EntityManagerInterface $em): JsonResponse
     {
+        // Fix IDOR - verify ownership
+        if ($favori->getVoyageur() !== $this->getUser()) {
+            return $this->json(['message' => 'Acces refuse'], 403);
+        }
+
         $em->remove($favori);
         $em->flush();
         return $this->json(['message' => 'Retire des favoris']);
