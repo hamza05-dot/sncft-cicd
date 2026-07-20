@@ -6,9 +6,6 @@ use App\Entity\Horaire;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<Horaire>
- */
 class HoraireRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -16,28 +13,31 @@ class HoraireRepository extends ServiceEntityRepository
         parent::__construct($registry, Horaire::class);
     }
 
-    //    /**
-    //     * @return Horaire[] Returns an array of Horaire objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('h')
-    //            ->andWhere('h.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('h.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function findAllWithRelations(): array
+    {
+        return $this->createQueryBuilder('h')
+            ->addSelect('t', 'tr', 'sd', 'sa')
+            ->join('h.train', 't')
+            ->join('h.trajet', 'tr')
+            ->join('tr.stationDepart', 'sd')
+            ->join('tr.stationArrivee', 'sa')
+            ->getQuery()
+            ->getResult();
+    }
 
-    //    public function findOneBySomeField($value): ?Horaire
-    //    {
-    //        return $this->createQueryBuilder('h')
-    //            ->andWhere('h.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    public function findByTrajet(int $departId, int $arriveeId): array
+    {
+        return $this->createQueryBuilder('h')
+            ->addSelect('t', 'tr', 'sd', 'sa')
+            ->join('h.train', 't')
+            ->join('h.trajet', 'tr')
+            ->join('tr.stationDepart', 'sd')
+            ->join('tr.stationArrivee', 'sa')
+            ->where('sd.id = :depart')
+            ->andWhere('sa.id = :arrivee')
+            ->setParameter('depart', $departId)
+            ->setParameter('arrivee', $arriveeId)
+            ->getQuery()
+            ->getResult();
+    }
 }

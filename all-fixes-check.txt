@@ -1,0 +1,708 @@
+=== Personnel.php ===
+<?php
+
+namespace App\Entity;
+
+use App\Repository\PersonnelRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: PersonnelRepository::class)]
+class Personnel
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $nom = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $prenom = null;
+
+    #[ORM\Column(length: 180)]
+    private ?string $email = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $telephone = null;
+
+    #[ORM\Column(length: 50)]
+    private ?string $role = null;
+
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    private ?User $compte = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): static
+    {
+        $this->nom = $nom;
+
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+
+    public function setPrenom(string $prenom): static
+    {
+        $this->prenom = $prenom;
+
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+
+        return $this;
+    }
+
+    public function getTelephone(): ?string
+    {
+        return $this->telephone;
+    }
+
+    public function setTelephone(?string $telephone): static
+    {
+        $this->telephone = $telephone;
+
+        return $this;
+    }
+
+    public function getRole(): ?string
+    {
+        return $this->role;
+    }
+
+    public function setRole(string $role): static
+    {
+        $this->role = $role;
+
+        return $this;
+    }
+
+    public function getCompte(): ?User
+    {
+        return $this->compte;
+    }
+
+    public function setCompte(?User $compte): static
+    {
+        $this->compte = $compte;
+
+        return $this;
+    }
+}
+
+=== PersonnelController.php ===
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Personnel;
+use App\Repository\PersonnelRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/personnel')]
+class PersonnelController extends AbstractController
+{
+    #[Route('', methods: ['GET'])]
+    public function index(PersonnelRepository $repo): JsonResponse
+    {
+        $personnel = $repo->findAll();
+        $data = array_map(fn($p) => [
+            'id' => $p->getId(),
+            'nom' => $p->getNom(),
+            'prenom' => $p->getPrenom(),
+            'email' => $p->getEmail(),
+            'telephone' => $p->getTelephone(),
+            'role' => $p->getRole(),
+        ], $personnel);
+
+        return $this->json($data);
+    }
+
+    #[Route('/{id}', methods: ['GET'])]
+    public function show(Personnel $personnel): JsonResponse
+    {
+        return $this->json([
+            'id' => $personnel->getId(),
+            'nom' => $personnel->getNom(),
+            'prenom' => $personnel->getPrenom(),
+            'email' => $personnel->getEmail(),
+            'telephone' => $personnel->getTelephone(),
+            'role' => $personnel->getRole(),
+        ]);
+    }
+
+    #[Route('', methods: ['POST'])]
+    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $personnel = new Personnel();
+        $personnel->setNom($data['nom']);
+        $personnel->setPrenom($data['prenom']);
+        $personnel->setEmail($data['email']);
+        $personnel->setTelephone($data['telephone'] ?? null);
+        $personnel->setRole($data['role']);
+
+        $em->persist($personnel);
+        $em->flush();
+
+        return $this->json(['message' => 'Personnel créé', 'id' => $personnel->getId()], 201);
+    }
+
+    #[Route('/{id}', methods: ['PUT'])]
+    public function update(Personnel $personnel, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $personnel->setNom($data['nom'] ?? $personnel->getNom());
+        $personnel->setPrenom($data['prenom'] ?? $personnel->getPrenom());
+        $personnel->setEmail($data['email'] ?? $personnel->getEmail());
+        $personnel->setTelephone($data['telephone'] ?? $personnel->getTelephone());
+        $personnel->setRole($data['role'] ?? $personnel->getRole());
+
+        $em->flush();
+
+        return $this->json(['message' => 'Personnel mis à jour']);
+    }
+
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(Personnel $personnel, EntityManagerInterface $em): JsonResponse
+    {
+        $em->remove($personnel);
+        $em->flush();
+
+        return $this->json(['message' => 'Personnel supprimé']);
+    }
+}
+
+=== FavoriController.php ===
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Favori;
+use App\Repository\FavoriRepository;
+use App\Repository\HoraireRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/favoris')]
+class FavoriController extends AbstractController
+{
+    #[Route('', methods: ['GET'])]
+    public function index(FavoriRepository $repo): JsonResponse
+    {
+        $user = $this->getUser();
+        $favoris = $repo->findBy(['voyageur' => $user]);
+        $data = [];
+        foreach ($favoris as $f) {
+            $data[] = [
+                'id' => $f->getId(),
+                'dateAjout' => $f->getDateAjout()->format('Y-m-d H:i'),
+                'horaire' => [
+                    'id' => $f->getHoraire()->getId(),
+                    'heureDepart' => $f->getHoraire()->getHeureDepart()->format('H:i'),
+                    'heureArrivee' => $f->getHoraire()->getHeureArrivee()->format('H:i'),
+                    'train' => $f->getHoraire()->getTrain()->getNumero(),
+                    'trajet' => $f->getHoraire()->getTrajet()->getStationDepart()->getNom().' -> '.$f->getHoraire()->getTrajet()->getStationArrivee()->getNom(),
+                    'statut' => $f->getHoraire()->getStatut(),
+                    'retardMinutes' => $f->getHoraire()->getRetardMinutes(),
+                ],
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('', methods: ['POST'])]
+    public function create(Request $request, EntityManagerInterface $em, HoraireRepository $horaireRepo, FavoriRepository $favoriRepo): JsonResponse
+    {
+        $user = $this->getUser();
+        $data = json_decode($request->getContent(), true);
+        $horaire = $horaireRepo->find($data['horaireId']);
+
+        if (!$horaire) {
+            return $this->json(['message' => 'Horaire non trouve'], 404);
+        }
+
+        $existing = $favoriRepo->findOneBy(['voyageur' => $user, 'horaire' => $horaire]);
+        if ($existing) {
+            return $this->json(['message' => 'Deja en favori'], 400);
+        }
+
+        $favori = new Favori();
+        $favori->setDateAjout(new \DateTime());
+        $favori->setVoyageur($user);
+        $favori->setHoraire($horaire);
+
+        $em->persist($favori);
+        $em->flush();
+
+        return $this->json(['message' => 'Ajoute aux favoris', 'id' => $favori->getId()], 201);
+    }
+
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(Favori $favori, EntityManagerInterface $em): JsonResponse
+    {
+        // Fix IDOR - verify ownership
+        if ($favori->getVoyageur() !== $this->getUser()) {
+            return $this->json(['message' => 'Acces refuse'], 403);
+        }
+
+        $em->remove($favori);
+        $em->flush();
+        return $this->json(['message' => 'Retire des favoris']);
+    }
+}
+
+=== NotificationController.php ===
+<?php
+
+namespace App\Controller;
+
+use App\Repository\NotificationRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/notifications')]
+class NotificationController extends AbstractController
+{
+    #[Route('', methods: ['GET'])]
+    public function index(NotificationRepository $repo): JsonResponse
+    {
+        $user = $this->getUser();
+        $notifications = $repo->findBy(
+            ['voyageur' => $user],
+            ['dateCreation' => 'DESC']
+        );
+        $data = [];
+        foreach ($notifications as $n) {
+            $data[] = [
+                'id' => $n->getId(),
+                'message' => $n->getMessage(),
+                'type' => $n->getType(),
+                'lu' => $n->isLu(),
+                'dateCreation' => $n->getDateCreation()->format('Y-m-d H:i'),
+                'horaire' => $n->getHoraire()->getId(),
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('/non-lues', methods: ['GET'])]
+    public function nonLues(NotificationRepository $repo): JsonResponse
+    {
+        $user = $this->getUser();
+        $notifications = $repo->findBy(['voyageur' => $user, 'lu' => false]);
+        return $this->json(['count' => count($notifications)]);
+    }
+
+    #[Route('/{id}/lire', methods: ['PUT'])]
+    public function marquerLue(int $id, NotificationRepository $repo, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        $notification = $repo->find($id);
+
+        if (!$notification) {
+            return $this->json(['message' => 'Notification non trouvee'], 404);
+        }
+
+        // Fix IDOR - verify ownership
+        if ($notification->getVoyageur() !== $user) {
+            return $this->json(['message' => 'Acces refuse'], 403);
+        }
+
+        $notification->setLu(true);
+        $em->flush();
+        return $this->json(['message' => 'Notification marquee comme lue']);
+    }
+
+    #[Route('/lire-toutes', methods: ['PUT'])]
+    public function marquerToutesLues(NotificationRepository $repo, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+        $notifications = $repo->findBy(['voyageur' => $user, 'lu' => false]);
+        foreach ($notifications as $n) {
+            $n->setLu(true);
+        }
+        $em->flush();
+        return $this->json(['message' => 'Toutes les notifications marquees comme lues']);
+    }
+}
+
+=== HoraireRepository.php ===
+<?php
+
+namespace App\Repository;
+
+use App\Entity\Horaire;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+class HoraireRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Horaire::class);
+    }
+
+    public function findAllWithRelations(): array
+    {
+        return $this->createQueryBuilder('h')
+            ->addSelect('t', 'tr', 'sd', 'sa')
+            ->join('h.train', 't')
+            ->join('h.trajet', 'tr')
+            ->join('tr.stationDepart', 'sd')
+            ->join('tr.stationArrivee', 'sa')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findByTrajet(int $departId, int $arriveeId): array
+    {
+        return $this->createQueryBuilder('h')
+            ->addSelect('t', 'tr', 'sd', 'sa')
+            ->join('h.train', 't')
+            ->join('h.trajet', 'tr')
+            ->join('tr.stationDepart', 'sd')
+            ->join('tr.stationArrivee', 'sa')
+            ->where('sd.id = :depart')
+            ->andWhere('sa.id = :arrivee')
+            ->setParameter('depart', $departId)
+            ->setParameter('arrivee', $arriveeId)
+            ->getQuery()
+            ->getResult();
+    }
+}
+
+=== HoraireController.php ===
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Horaire;
+use App\Entity\Notification;
+use App\Repository\HoraireRepository;
+use App\Repository\TrainRepository;
+use App\Repository\TrajetRepository;
+use App\Repository\FavoriRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/horaires')]
+class HoraireController extends AbstractController
+{
+    #[Route('', methods: ['GET'])]
+    public function index(HoraireRepository $repo): JsonResponse
+    {
+        $horaires = $repo->findAllWithRelations();
+        $data = [];
+        foreach ($horaires as $h) {
+            $data[] = [
+                'id' => $h->getId(),
+                'heureDepart' => $h->getHeureDepart()->format('H:i'),
+                'heureArrivee' => $h->getHeureArrivee()->format('H:i'),
+                'jours' => $h->getJours(),
+                'statut' => $h->getStatut(),
+                'retardMinutes' => $h->getRetardMinutes(),
+                'train' => $h->getTrain()->getNumero(),
+                'trajet' => $h->getTrajet()->getStationDepart()->getNom().' -> '.$h->getTrajet()->getStationArrivee()->getNom(),
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('/{id}', methods: ['GET'])]
+    public function show(Horaire $horaire): JsonResponse
+    {
+        return $this->json([
+            'id' => $horaire->getId(),
+            'heureDepart' => $horaire->getHeureDepart()->format('H:i'),
+            'heureArrivee' => $horaire->getHeureArrivee()->format('H:i'),
+            'jours' => $horaire->getJours(),
+            'statut' => $horaire->getStatut(),
+            'retardMinutes' => $horaire->getRetardMinutes(),
+            'train' => $horaire->getTrain()->getNumero(),
+            'trajet' => $horaire->getTrajet()->getStationDepart()->getNom().' -> '.$horaire->getTrajet()->getStationArrivee()->getNom(),
+        ]);
+    }
+
+    #[Route('', methods: ['POST'])]
+    public function create(Request $request, EntityManagerInterface $em, TrainRepository $trainRepo, TrajetRepository $trajetRepo): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        $horaire = new Horaire();
+        $horaire->setHeureDepart(new \DateTime($data['heureDepart']));
+        $horaire->setHeureArrivee(new \DateTime($data['heureArrivee']));
+        $horaire->setJours($data['jours']);
+        $horaire->setStatut($data['statut'] ?? "A l'heure");
+        $horaire->setRetardMinutes(null);
+        $horaire->setTrain($trainRepo->find($data['trainId']));
+        $horaire->setTrajet($trajetRepo->find($data['trajetId']));
+
+        $em->persist($horaire);
+        $em->flush();
+
+        return $this->json(['message' => 'Horaire cree', 'id' => $horaire->getId()], 201);
+    }
+
+    #[Route('/{id}/statut', methods: ['PUT'])]
+    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $ancienStatut = $horaire->getStatut();
+
+        $horaire->setStatut($data['statut']);
+        $horaire->setRetardMinutes($data['retardMinutes'] ?? null);
+
+        // Créer notifications pour tous les favoris
+        $favoris = $favoriRepo->findBy(['horaire' => $horaire]);
+        foreach ($favoris as $favori) {
+            $notification = new Notification();
+            $notification->setVoyageur($favori->getVoyageur());
+            $notification->setHoraire($horaire);
+            $notification->setDateCreation(new \DateTime());
+            $notification->setLu(false);
+
+            if ($data['statut'] === 'Retard') {
+                $minutes = $data['retardMinutes'] ?? 0;
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est en retard de ".$minutes." minutes.");
+                $notification->setType('RETARD');
+            } elseif ($data['statut'] === 'Annule') {
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est annule.");
+                $notification->setType('ANNULATION');
+            } else {
+                $notification->setMessage("Votre train ".$horaire->getTrain()->getNumero()." est maintenant a l'heure.");
+                $notification->setType('INFO');
+            }
+
+            $em->persist($notification);
+        }
+
+        $em->flush();
+
+        return $this->json(['message' => 'Statut mis a jour', 'notifications_envoyees' => count($favoris)]);
+    }
+
+    #[Route('/{id}', methods: ['PUT'])]
+    public function update(Horaire $horaire, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['heureDepart'])) $horaire->setHeureDepart(new \DateTime($data['heureDepart']));
+        if (isset($data['heureArrivee'])) $horaire->setHeureArrivee(new \DateTime($data['heureArrivee']));
+        if (isset($data['jours'])) $horaire->setJours($data['jours']);
+        if (isset($data['statut'])) $horaire->setStatut($data['statut']);
+
+        $em->flush();
+
+        return $this->json(['message' => 'Horaire mis a jour']);
+    }
+
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function delete(Horaire $horaire, EntityManagerInterface $em): JsonResponse
+    {
+        $em->remove($horaire);
+        $em->flush();
+
+        return $this->json(['message' => 'Horaire supprime']);
+    }
+}
+
+=== Horaire.php ===
+<?php
+
+namespace App\Entity;
+
+use App\Repository\HoraireRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: HoraireRepository::class)]
+class Horaire
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column]
+    private ?\DateTime $heureDepart = null;
+
+    #[ORM\Column]
+    private ?\DateTime $heureArrivee = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $jours = null;
+
+    #[ORM\Column(length: 50)]
+    private ?string $status = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Train $train = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Trajet $trajet = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $retardMinutes = null;
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getHeureDepart(): ?\DateTime
+    {
+        return $this->heureDepart;
+    }
+
+    public function setHeureDepart(\DateTime $heureDepart): static
+    {
+        $this->heureDepart = $heureDepart;
+
+        return $this;
+    }
+
+    public function getHeureArrivee(): ?\DateTime
+    {
+        return $this->heureArrivee;
+    }
+
+    public function setHeureArrivee(\DateTime $heureArrivee): static
+    {
+        $this->heureArrivee = $heureArrivee;
+
+        return $this;
+    }
+
+    public function getJours(): ?string
+    {
+        return $this->jours;
+    }
+
+    public function setJours(string $jours): static
+    {
+        $this->jours = $jours;
+
+        return $this;
+    }
+
+    public function getStatut(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatut(string $status): static
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getTrain(): ?Train
+    {
+        return $this->train;
+    }
+
+    public function setTrain(?Train $train): static
+    {
+        $this->train = $train;
+
+        return $this;
+    }
+
+    public function getTrajet(): ?Trajet
+    {
+        return $this->trajet;
+    }
+
+    public function setTrajet(?Trajet $trajet): static
+    {
+        $this->trajet = $trajet;
+
+        return $this;
+    }
+
+    public function getRetardMinutes(): ?int
+    {
+        return $this->retardMinutes;
+    }
+
+    public function setRetardMinutes(?int $retardMinutes): static
+    {
+        $this->retardMinutes = $retardMinutes;
+
+        return $this;
+    }
+}
+
+=== docker-compose.yml ===
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?serverVersion=16&charset=utf8"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./backend/public:/var/www/symfony/public
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

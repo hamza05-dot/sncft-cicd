@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/trains')]
 class TrainController extends AbstractController
@@ -17,13 +18,15 @@ class TrainController extends AbstractController
     public function index(TrainRepository $repo): JsonResponse
     {
         $trains = $repo->findAll();
-        $data = array_map(fn($t) => [
-            'id' => $t->getId(),
-            'numero' => $t->getNumero(),
-            'type' => $t->getType(),
-            'capacite' => $t->getCapacite(),
-        ], $trains);
-
+        $data = [];
+        foreach ($trains as $t) {
+            $data[] = [
+                'id' => $t->getId(),
+                'numero' => $t->getNumero(),
+                'type' => $t->getType(),
+                'capacite' => $t->getCapacite(),
+            ];
+        }
         return $this->json($data);
     }
 
@@ -39,19 +42,32 @@ class TrainController extends AbstractController
     }
 
     #[Route('', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em): JsonResponse
+    public function create(Request $request, EntityManagerInterface $em, ValidatorInterface $validator): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
+        if (!$data) {
+            return $this->json(['error' => 'JSON invalide'], 400);
+        }
+
         $train = new Train();
-        $train->setNumero($data['numero']);
-        $train->setType($data['type']);
-        $train->setCapacite($data['capacite']);
+        $train->setNumero($data['numero'] ?? '');
+        $train->setType($data['type'] ?? '');
+        $train->setCapacite($data['capacite'] ?? 0);
+
+        $errors = $validator->validate($train);
+        if (count($errors) > 0) {
+            $messages = [];
+            foreach ($errors as $error) {
+                $messages[] = $error->getMessage();
+            }
+            return $this->json(['errors' => $messages], 400);
+        }
 
         $em->persist($train);
         $em->flush();
 
-        return $this->json(['message' => 'Train créé', 'id' => $train->getId()], 201);
+        return $this->json(['message' => 'Train cree', 'id' => $train->getId()], 201);
     }
 
     #[Route('/{id}', methods: ['PUT'])]
@@ -59,13 +75,12 @@ class TrainController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        $train->setNumero($data['numero'] ?? $train->getNumero());
-        $train->setType($data['type'] ?? $train->getType());
-        $train->setCapacite($data['capacite'] ?? $train->getCapacite());
+        if (isset($data['numero'])) $train->setNumero($data['numero']);
+        if (isset($data['type'])) $train->setType($data['type']);
+        if (isset($data['capacite'])) $train->setCapacite($data['capacite']);
 
         $em->flush();
-
-        return $this->json(['message' => 'Train mis à jour']);
+        return $this->json(['message' => 'Train mis a jour']);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
@@ -73,7 +88,6 @@ class TrainController extends AbstractController
     {
         $em->remove($train);
         $em->flush();
-
-        return $this->json(['message' => 'Train supprimé']);
+        return $this->json(['message' => 'Train supprime']);
     }
 }

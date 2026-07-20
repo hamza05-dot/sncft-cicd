@@ -20,7 +20,7 @@ class HoraireController extends AbstractController
     #[Route('', methods: ['GET'])]
     public function index(HoraireRepository $repo): JsonResponse
     {
-        $horaires = $repo->findAll();
+        $horaires = $repo->findAllWithRelations();
         $data = [];
         foreach ($horaires as $h) {
             $data[] = [
