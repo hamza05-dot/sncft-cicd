@@ -9,6 +9,7 @@ use App\Repository\TrainRepository;
 use App\Repository\TrajetRepository;
 use App\Repository\FavoriRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +22,33 @@ class HoraireController extends AbstractController
     public function index(HoraireRepository $repo): JsonResponse
     {
         $horaires = $repo->findAllWithRelations();
+        $data = [];
+        foreach ($horaires as $h) {
+            $data[] = [
+                'id' => $h->getId(),
+                'heureDepart' => $h->getHeureDepart()->format('H:i'),
+                'heureArrivee' => $h->getHeureArrivee()->format('H:i'),
+                'jours' => $h->getJours(),
+                'statut' => $h->getStatut(),
+                'retardMinutes' => $h->getRetardMinutes(),
+                'train' => $h->getTrain()->getNumero(),
+                'trajet' => $h->getTrajet()->getStationDepart()->getNom().' -> '.$h->getTrajet()->getStationArrivee()->getNom(),
+            ];
+        }
+        return $this->json($data);
+    }
+
+    #[Route('/search', methods: ['GET'])]
+    public function search(Request $request, HoraireRepository $repo): JsonResponse
+    {
+        $departId = $request->query->get('depart');
+        $arriveeId = $request->query->get('arrivee');
+
+        if (!$departId || !$arriveeId) {
+            return $this->json(['error' => 'Parametres depart et arrivee requis'], 400);
+        }
+
+        $horaires = $repo->findByTrajet((int)$departId, (int)$arriveeId);
         $data = [];
         foreach ($horaires as $h) {
             $data[] = [
@@ -53,9 +81,20 @@ class HoraireController extends AbstractController
     }
 
     #[Route('', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em, TrainRepository $trainRepo, TrajetRepository $trajetRepo): JsonResponse
+    public function create(Request $request, EntityManagerInterface $em, TrainRepository $trainRepo, TrajetRepository $trajetRepo, LoggerInterface $logger): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+
+        if (!$data) {
+            return $this->json(['error' => 'JSON invalide'], 400);
+        }
+
+        $train = $trainRepo->find($data['trainId'] ?? 0);
+        $trajet = $trajetRepo->find($data['trajetId'] ?? 0);
+
+        if (!$train || !$trajet) {
+            return $this->json(['error' => 'Train ou trajet non trouve'], 404);
+        }
 
         $horaire = new Horaire();
         $horaire->setHeureDepart(new \DateTime($data['heureDepart']));
@@ -63,17 +102,19 @@ class HoraireController extends AbstractController
         $horaire->setJours($data['jours']);
         $horaire->setStatut($data['statut'] ?? "A l'heure");
         $horaire->setRetardMinutes(null);
-        $horaire->setTrain($trainRepo->find($data['trainId']));
-        $horaire->setTrajet($trajetRepo->find($data['trajetId']));
+        $horaire->setTrain($train);
+        $horaire->setTrajet($trajet);
 
         $em->persist($horaire);
         $em->flush();
+
+        $logger->info('horaire.created', ['id' => $horaire->getId(), 'train' => $train->getNumero()]);
 
         return $this->json(['message' => 'Horaire cree', 'id' => $horaire->getId()], 201);
     }
 
     #[Route('/{id}/statut', methods: ['PUT'])]
-    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo): JsonResponse
+    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo, LoggerInterface $logger): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $ancienStatut = $horaire->getStatut();
@@ -81,7 +122,6 @@ class HoraireController extends AbstractController
         $horaire->setStatut($data['statut']);
         $horaire->setRetardMinutes($data['retardMinutes'] ?? null);
 
-        // Créer notifications pour tous les favoris
         $favoris = $favoriRepo->findBy(['horaire' => $horaire]);
         foreach ($favoris as $favori) {
             $notification = new Notification();
@@ -107,6 +147,14 @@ class HoraireController extends AbstractController
 
         $em->flush();
 
+        $logger->info('horaire.statut_updated', [
+            'id' => $horaire->getId(),
+            'ancien_statut' => $ancienStatut,
+            'nouveau_statut' => $data['statut'],
+            'notifications_envoyees' => count($favoris),
+            'admin' => $this->getUser()->getUserIdentifier(),
+        ]);
+
         return $this->json(['message' => 'Statut mis a jour', 'notifications_envoyees' => count($favoris)]);
     }
 
@@ -121,16 +169,15 @@ class HoraireController extends AbstractController
         if (isset($data['statut'])) $horaire->setStatut($data['statut']);
 
         $em->flush();
-
         return $this->json(['message' => 'Horaire mis a jour']);
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
-    public function delete(Horaire $horaire, EntityManagerInterface $em): JsonResponse
+    public function delete(Horaire $horaire, EntityManagerInterface $em, LoggerInterface $logger): JsonResponse
     {
+        $logger->info('horaire.deleted', ['id' => $horaire->getId()]);
         $em->remove($horaire);
         $em->flush();
-
         return $this->json(['message' => 'Horaire supprime']);
     }
 }

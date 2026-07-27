@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         backupGlobals="false"
+         colors="true"
+         bootstrap="vendor/autoload.php"
+>
+    <php>
+        <ini name="display_errors" value="1" />
+        <ini name="error_reporting" value="-1" />
+        <server name="APP_ENV" value="test" force="true" />
+        <server name="APP_SECRET" value="test_secret_key" force="true" />
+        <server name="KERNEL_CLASS" value="App\Kernel" force="true" />
+        <server name="DEFAULT_URI" value="http://localhost" force="true" />
+        <env name="DATABASE_URL" value="postgresql://sncft_user:sncft_pass@127.0.0.1:5433/sncft_test?serverVersion=16&amp;charset=utf8" force="true" />
+        <env name="JWT_SECRET_KEY" value="%kernel.project_dir%/config/jwt/private.pem" force="true" />
+        <env name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/public.pem" force="true" />
+        <env name="JWT_PASSPHRASE" value="sncft_jwt_passphrase" force="true" />
+        <env name="CORS_ALLOW_ORIGIN" value="http://localhost:3000" force="true" />
+    </php>
+
+    <testsuites>
+        <testsuite name="Project Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>
