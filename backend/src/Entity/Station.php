@@ -25,6 +25,7 @@ class Station
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
 
+
     public function getId(): ?int { return $this->id; }
     public function getNom(): ?string { return $this->nom; }
     public function setNom(string $nom): static { $this->nom = $nom; return $this; }
@@ -32,4 +33,5 @@ class Station
     public function setVille(string $ville): static { $this->ville = $ville; return $this; }
     public function getAddress(): ?string { return $this->address; }
     public function setAddress(?string $address): static { $this->address = $address; return $this; }
+
 }
