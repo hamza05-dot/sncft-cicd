@@ -36,4 +36,5 @@ security:
         - { path: ^/api/notifications, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/horaires-conducteurs/mon-planning, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/maintenances, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
+        - { path: ^/api/maintenances, roles: IS_AUTHENTICATED_FULLY, methods: [PUT] }
         - { path: ^/api, roles: ROLE_ADMIN }

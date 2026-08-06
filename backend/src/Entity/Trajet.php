@@ -15,6 +15,8 @@ class Trajet
 
     #[ORM\Column]
     private ?float $distanceKm = null;
+    #[ORM\ManyToOne]
+    private ?Ligne $ligne = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -53,6 +55,8 @@ class Trajet
         return $this;
     }
 
+    public function getLigne(): ?Ligne { return $this->ligne; }
+    public function setLigne(?Ligne $ligne): static { $this->ligne = $ligne; return $this; }
     public function getStationArrivee(): ?Station
     {
         return $this->stationArrivee;
