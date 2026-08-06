@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Mercure\Jwt\TokenFactoryInterface;
 
 #[Route('/api/auth')]
 class AuthController extends AbstractController
@@ -45,5 +46,13 @@ class AuthController extends AbstractController
             'roles' => $user->getRoles()
         ]);
     }
-}
 
+    #[Route('/mercure-token', methods: ['GET'])]
+    public function mercureToken(TokenFactoryInterface $defaultTokenFactory): JsonResponse
+    {
+        $user = $this->getUser();
+        $topic = 'https://sncft.tn/notifications/' . $user->getId();
+        $token = $defaultTokenFactory->create(subscribe: [$topic]);
+        return $this->json(['token' => $token, 'topic' => $topic]);
+    }
+}

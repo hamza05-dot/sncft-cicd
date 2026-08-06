@@ -12,12 +12,20 @@ export interface Train {
   capacite: number;
 }
 
+export interface Trajet {
+  id: number;
+  distanceKm: number;
+  stationDepart: string;
+  stationArrivee: string;
+}
+
 export interface Horaire {
   id: number;
   heureDepart: string;
   heureArrivee: string;
   jours: string;
   statut: string;
+  retardMinutes: number | null;
   train: string;
   trajet: string;
 }

@@ -13,6 +13,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/horaires')]
@@ -114,7 +116,7 @@ class HoraireController extends AbstractController
     }
 
     #[Route('/{id}/statut', methods: ['PUT'])]
-    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo, LoggerInterface $logger): JsonResponse
+    public function updateStatut(Horaire $horaire, Request $request, EntityManagerInterface $em, FavoriRepository $favoriRepo, LoggerInterface $logger, HubInterface $hub): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $ancienStatut = $horaire->getStatut();
@@ -143,6 +145,17 @@ class HoraireController extends AbstractController
             }
 
             $em->persist($notification);
+            $topic = 'https://sncft.tn/notifications/' . $favori->getVoyageur()->getId();
+            $update = new Update(
+                $topic,
+                json_encode([
+                    'message' => $notification->getMessage(),
+                    'type' => $notification->getType(),
+                    'trainNumero' => $horaire->getTrain()->getNumero(),
+                    'lu' => false,
+                ])
+            );
+            $hub->publish($update);
         }
 
         $em->flush();

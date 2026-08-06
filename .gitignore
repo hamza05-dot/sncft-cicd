@@ -13,3 +13,4 @@ docker-compose.override.yml
 .env
 backend/.env.local
 frontend/.env.local
+backend/config/jwt/

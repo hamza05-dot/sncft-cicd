@@ -46,7 +46,39 @@ export default function MesFavorisPage() {
       });
     }
   }, [user]);
+useEffect(() => {
+    if (!user) return;
 
+    let eventSource: EventSource | null = null;
+
+    const subscribe = async () => {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:8080/api/auth/mercure-token', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { token: mercureToken, topic } = res.data;
+
+      document.cookie = `mercureAuthorization=${mercureToken}; path=/`;
+
+      const url = new URL('http://localhost:3001/.well-known/mercure');
+      url.searchParams.append('topic', topic);
+
+      eventSource = new EventSource(url, { withCredentials: true });
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setNotifications((prev) => [
+          { id: Date.now(), lu: false, ...data, dateCreation: new Date().toISOString() },
+          ...prev,
+        ]);
+      };
+    };
+
+    subscribe();
+
+    return () => {
+      eventSource?.close();
+    };
+  }, [user]);
   const supprimerFavori = async (id: number) => {
     const token = localStorage.getItem('token');
     await axios.delete(`http://localhost:8080/api/favoris/${id}`, {
