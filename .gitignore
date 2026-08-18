@@ -14,3 +14,11 @@ docker-compose.override.yml
 backend/.env.local
 frontend/.env.local
 backend/config/jwt/
+
+# Backup files from editing sessions
+*.bak
+*.bak[0-9]*
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
