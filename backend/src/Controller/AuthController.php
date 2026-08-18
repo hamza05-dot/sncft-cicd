@@ -47,6 +47,55 @@ class AuthController extends AbstractController
         ]);
     }
 
+    #[Route('/me', methods: ['PUT'])]
+    public function updateMe(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json(['message' => 'Non authentifie'], 401);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $currentPassword = $data['currentPassword'] ?? null;
+
+        // Any change to email or password requires the current password,
+        // so a stolen session token alone can't take over the account.
+        $wantsEmailChange = !empty($data['email']) && $data['email'] !== $user->getEmail();
+        $wantsPasswordChange = !empty($data['newPassword']);
+
+        if ($wantsEmailChange || $wantsPasswordChange) {
+            if (!$currentPassword || !$hasher->isPasswordValid($user, $currentPassword)) {
+                return $this->json(['message' => 'Mot de passe actuel incorrect'], 400);
+            }
+        }
+
+        if ($wantsEmailChange) {
+            $existing = $em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+            if ($existing) {
+                return $this->json(['message' => 'Cet email est deja utilise'], 400);
+            }
+            $user->setEmail($data['email']);
+        }
+
+        if ($wantsPasswordChange) {
+            if (strlen($data['newPassword']) < 8) {
+                return $this->json(['message' => 'Le nouveau mot de passe doit contenir au moins 8 caracteres'], 400);
+            }
+            $user->setPassword($hasher->hashPassword($user, $data['newPassword']));
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Profil mis a jour',
+            'email' => $user->getEmail(),
+            'roles' => $user->getRoles(),
+        ]);
+    }
+
     #[Route('/mercure-token', methods: ['GET'])]
     public function mercureToken(TokenFactoryInterface $defaultTokenFactory): JsonResponse
     {
