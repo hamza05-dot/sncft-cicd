@@ -32,6 +32,7 @@ security:
         - { path: ^/api/trains, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/horaires, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/trajets, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/lignes, roles: PUBLIC_ACCESS, methods: [GET] }
         - { path: ^/api/favoris, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/notifications, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/horaires-conducteurs/mon-planning, roles: IS_AUTHENTICATED_FULLY }

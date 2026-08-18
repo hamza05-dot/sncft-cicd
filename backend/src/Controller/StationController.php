@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Station;
 use App\Repository\StationRepository;
+use App\Repository\TrajetRepository;
+use App\Repository\LigneStationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -69,8 +71,28 @@ class StationController extends AbstractController
     }
 
     #[Route('/{id}', methods: ['DELETE'])]
-    public function delete(Station $station, EntityManagerInterface $em): JsonResponse
-    {
+    public function delete(
+        Station $station,
+        EntityManagerInterface $em,
+        TrajetRepository $trajetRepo,
+        LigneStationRepository $ligneStationRepo
+    ): JsonResponse {
+        $trajetsAsDepart = $trajetRepo->count(['stationDepart' => $station]);
+        $trajetsAsArrivee = $trajetRepo->count(['stationArrivee' => $station]);
+        $ligneStationsCount = $ligneStationRepo->count(['station' => $station]);
+
+        $totalTrajets = $trajetsAsDepart + $trajetsAsArrivee;
+
+        if ($totalTrajets > 0 || $ligneStationsCount > 0) {
+            return $this->json([
+                'message' => sprintf(
+                    'Impossible de supprimer cette station : elle est utilisée dans %d trajet(s) et %d ligne(s). Supprimez ou modifiez ces éléments d\'abord.',
+                    $totalTrajets,
+                    $ligneStationsCount
+                ),
+            ], 409);
+        }
+
         $em->remove($station);
         $em->flush();
 

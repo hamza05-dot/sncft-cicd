@@ -25,6 +25,8 @@ export const login = async (email: string, password: string) => {
   return res.data;
 };
 
+
+
 export const register = async (email: string, password: string, roles: string[]) => {
   const res = await api.post('/auth/register', { email, password, roles });
   return res.data;
@@ -34,6 +36,18 @@ export const getMe = async () => {
   const res = await api.get('/auth/me');
   return res.data;
 };
+
+// Lignes
+export const getLignes = async () => {
+  const res = await api.get('/lignes');
+  return res.data;
+};
+
+export const getStationsByLigne = async (ligneId: number) => {
+  const res = await api.get(`/lignes/${ligneId}/stations`);
+  return res.data;
+};
+
 
 // Data
 export const getHoraires = async () => {
@@ -173,5 +187,15 @@ export const marquerNotificationLue = async (id: number) => {
 
 export const marquerToutesLues = async () => {
   const res = await api.put('/notifications/lire-toutes', {});
+  return res.data;
+};
+
+export const getHorairesByLigne = async (ligneId: number) => {
+  const res = await api.get(`/lignes/${ligneId}/horaires`);
+  return res.data;
+};
+
+export const updateProfile = async (data: { email?: string; newPassword?: string; currentPassword: string }) => {
+  const res = await api.put('/auth/me', data);
   return res.data;
 };

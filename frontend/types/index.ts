@@ -1,3 +1,15 @@
+export interface Ligne {
+  id: number;
+  nom: string;
+}
+
+export interface LigneStation {
+  id: number;
+  nom: string;
+  ville: string;
+  ordre: number;
+}
+
 export interface Station {
   id: number;
   nom: string;
@@ -67,4 +79,16 @@ export interface Reservation {
   placesReservees: number;
   voyageur: string;
   horaire: number;
+}
+
+export interface LigneHoraire {
+  id: number;
+  heureDepart: string;
+  heureArrivee: string;
+  jours: string;
+  statut: string;
+  retardMinutes: number | null;
+  train: string;
+  stationDepart: string;
+  stationArrivee: string;
 }

@@ -25,6 +25,21 @@ class HoraireRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findByLigne(int $ligneId): array
+    {
+        return $this->createQueryBuilder('h')
+            ->addSelect('t', 'tr', 'sd', 'sa')
+            ->join('h.train', 't')
+            ->join('h.trajet', 'tr')
+            ->join('tr.stationDepart', 'sd')
+            ->join('tr.stationArrivee', 'sa')
+            ->where('tr.ligne = :ligneId')
+            ->setParameter('ligneId', $ligneId)
+            ->orderBy('h.heureDepart', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findByTrajet(int $departId, int $arriveeId): array
     {
         return $this->createQueryBuilder('h')
